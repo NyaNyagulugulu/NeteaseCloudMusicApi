@@ -6,6 +6,7 @@ const packageJSON = require('./package.json')
 const exec = require('child_process').exec
 const cache = require('./util/apicache').middleware
 const { cookieToJson } = require('./util/index')
+const cookieStore = require('./util/cookieStore')
 const fileUpload = require('express-fileupload')
 const decode = require('safe-decode-uri-component')
 
@@ -212,13 +213,18 @@ async function consturctServer(moduleDefs) {
         }
       })
 
+      const savedCookie = cookieStore.loadObject()
       let query = Object.assign(
         {},
-        { cookie: req.cookies },
+        { cookie: { ...savedCookie, ...req.cookies } },
         req.query,
         req.body,
         req.files,
       )
+      if (typeof query.cookie === 'string') {
+        query.cookie = cookieToJson(decode(query.cookie))
+      }
+      query.cookie = { ...savedCookie, ...query.cookie }
 
       try {
         const moduleResponse = await moduleDef.module(query, (...params) => {
@@ -237,6 +243,22 @@ async function consturctServer(moduleDefs) {
           return request(...obj)
         })
         console.log('[OK]', decode(req.originalUrl))
+
+        const loginRoutes = [
+          '/login',
+          '/login/cellphone',
+          '/login/qr/check',
+          '/login/refresh',
+        ]
+        if (
+          loginRoutes.includes(moduleDef.route) &&
+          moduleResponse.body &&
+          (moduleResponse.body.code === 200 ||
+            moduleResponse.body.code === 803) &&
+          cookieStore.saveFromResponse(moduleResponse)
+        ) {
+          console.log('[cookieStore] saved login cookie')
+        }
 
         const cookies = moduleResponse.cookie
         if (!query.noCookie) {
@@ -311,6 +333,11 @@ async function serveNcmApi(options) {
   const appExt = app
   appExt.server = app.listen(port, host, () => {
     console.log(`server running @ http://${host ? host : 'localhost'}:${port}`)
+    if (cookieStore.hasSavedLogin()) {
+      console.log(
+        `[cookieStore] loaded saved account cookie from ${cookieStore.COOKIE_PATH}`,
+      )
+    }
   })
 
   return appExt

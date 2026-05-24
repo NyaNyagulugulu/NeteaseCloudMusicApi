@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const tmpPath = require('os').tmpdir()
 const { cookieToJson } = require('./util')
+const cookieStore = require('./util/cookieStore')
 
 if (!fs.existsSync(path.resolve(tmpPath, 'anonymous_token'))) {
   fs.writeFileSync(path.resolve(tmpPath, 'anonymous_token'), '', 'utf-8')
@@ -17,13 +18,14 @@ fs.readdirSync(path.join(__dirname, 'module'))
     let fileModule = require(path.join(__dirname, 'module', file))
     let fn = file.split('.').shift() || ''
     obj[fn] = function (data = {}) {
+      const savedCookie = cookieStore.loadObject()
       if (typeof data.cookie === 'string') {
         data.cookie = cookieToJson(data.cookie)
       }
       return fileModule(
         {
           ...data,
-          cookie: data.cookie ? data.cookie : {},
+          cookie: { ...savedCookie, ...(data.cookie || {}) },
         },
         async (...args) => {
           if (firstRun) {
