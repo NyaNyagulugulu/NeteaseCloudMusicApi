@@ -159,14 +159,14 @@ async function consturctServer(moduleDefs) {
    */
   app.use((req, _, next) => {
     req.cookies = {}
-    //;(req.headers.cookie || '').split(/\s*;\s*/).forEach((pair) => { //  Polynomial regular expression //
-    ;(req.headers.cookie || '').split(/;\s+|(?<!\s)\s+$/g).forEach((pair) => {
-      let crack = pair.indexOf('=')
-      if (crack < 1 || crack == pair.length - 1) return
-      req.cookies[decode(pair.slice(0, crack)).trim()] = decode(
-        pair.slice(crack + 1),
-      ).trim()
-    })
+      //;(req.headers.cookie || '').split(/\s*;\s*/).forEach((pair) => { //  Polynomial regular expression //
+      ; (req.headers.cookie || '').split(/;\s+|(?<!\s)\s+$/g).forEach((pair) => {
+        let crack = pair.indexOf('=')
+        if (crack < 1 || crack == pair.length - 1) return
+        req.cookies[decode(pair.slice(0, crack)).trim()] = decode(
+          pair.slice(crack + 1),
+        ).trim()
+      })
     next()
   })
 
@@ -310,7 +310,7 @@ async function consturctServer(moduleDefs) {
  * @returns {Promise<import('express').Express & ExpressExtension>}
  */
 async function serveNcmApi(options) {
-  const port = Number(options.port || process.env.PORT || '3000')
+  const port = Number(options.port || process.env.PORT || '5000')
   const host = options.host || process.env.HOST || ''
 
   const checkVersionSubmission =
